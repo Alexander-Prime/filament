@@ -1,0 +1,26 @@
+{
+  "name": "filament",
+  "version": "0.0.1",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest --watch --noStackTrace",
+    "test:verbose": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "immutable": "^4.0.0-rc.9"
+  },
+  "devDependencies": {
+    "@types/jest": "^22.1.3",
+    "jest": "^22.3.0",
+    "ts-jest": "^22.0.4",
+    "typescript": "^2.7.2"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": ["ts", "js"]
+  }
+}
