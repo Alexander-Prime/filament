@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "esnext",
+    "module": "commonjs",
     "target": "esnext",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
@@ -17,11 +17,13 @@
 
     "removeComments": true,
     "preserveConstEnums": true,
-    "sourceMap": true,
+    "declaration": true,
     "baseUrl": "./src",
     "rootDirs": [".", "./src"],
     "plugins": [{ "name": "tslint-language-service" }],
+    "outDir": "./dist",
     "lib": ["dom", "es2017"]
   },
-  "exclude": ["node_modules"]
+  "files": ["src/Graph.ts"],
+  "exclude": ["node_modules", "**/__tests__"]
 }

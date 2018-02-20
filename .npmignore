@@ -1,0 +1,4 @@
+/coverage
+__tests__
+.prettierrc.json
+package-lock.json

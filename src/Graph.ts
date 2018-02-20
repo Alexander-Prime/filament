@@ -172,4 +172,5 @@ namespace Graph {
   }
 }
 
-export { Graph };
+export { UntypedGraph, GraphProps, GraphMethods };
+export { Graph, NodeKey, EdgeKey };
