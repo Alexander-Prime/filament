@@ -3,7 +3,7 @@ A small library implementing a directed graph structure as an Immutable.js `Reco
 ## Installation
 
 ```sh
-npm install "Alexander-Prime/filament#semver:0.0"
+npm install "Alexander-Prime/filament#semver:0.1"
 ```
 
 ## Usage
