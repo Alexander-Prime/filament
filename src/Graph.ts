@@ -27,6 +27,9 @@ interface GraphMethods<K, N, E> {
   successors(key: K): Seq<K, N>;
   neighbors(key: K): Seq<K, N>;
 
+  ancestors(key: K): Seq<K, N>;
+  descendants(key: K): Seq<K, N>;
+
   hasNode(key: K): boolean;
   getNode<NSV>(key: K, notSetValue: NSV): N | NSV;
   getNode(key: K): N | undefined;
@@ -65,6 +68,13 @@ class UntypedGraph<K, N, E>
     const pre = this.predecessors(key);
     const suc = this.successors(key).filterNot((_, k) => pre.has(k));
     return pre.concat(suc) as Seq<K, N>;
+  }
+
+  ancestors(key: K): Seq<K, N> {
+    return this.traverseUp([key]).filter((_, k) => k !== key);
+  }
+  descendants(key: K): Seq<K, N> {
+    return this.traverseDown([key]).filter((_, k) => k !== key);
   }
 
   hasNode(key: K): boolean {
@@ -108,11 +118,16 @@ class UntypedGraph<K, N, E>
     return this.nodes.toSeq().filterNot((_, k) => sources.contains(k));
   }
   topoSort(): Seq.Indexed<[K, N]> {
-    let wavefront = this.findSources()
-      .keySeq()
-      .toSet();
+    return this.traverseDown(this.findSources().keySeq()).entrySeq();
+  }
+  hasCycles(): boolean {
+    return this.topoSort().count() !== this.nodes.count();
+  }
+
+  private traverseUp(keys: Iterable<K>): Seq<K, N> {
+    let wavefront = Seq(keys).toSet();
     let edges = this.edges;
-    return Seq({
+    return Seq.Keyed({
       [Symbol.iterator]: () => {
         return {
           next: () => {
@@ -121,7 +136,37 @@ class UntypedGraph<K, N, E>
               return { done: true, value: (undefined as any) as [K, N] };
             }
             wavefront = wavefront.skip(1);
-            edges = edges.filter((_, { source }) => source !== nodeKey);
+            edges = edges.filter((_, { target }) => target !== nodeKey);
+            this.predecessors(nodeKey)
+              .filterNot((_, sucKey) =>
+                edges.some((_, edgeKey) => edgeKey.source === sucKey),
+              )
+              .forEach((_, sucKey) => (wavefront = wavefront.add(sucKey)));
+
+            return {
+              done: false,
+              value: [nodeKey, this.getNode(nodeKey)! as N],
+            };
+          },
+        };
+      },
+    } as Iterable<[K, N]>);
+  }
+  private traverseDown(keys: Iterable<K>): Seq<K, N> {
+    let wavefront = Seq(keys).toSet();
+    let edges = this.edges;
+    return Seq.Keyed({
+      [Symbol.iterator]: () => {
+        return {
+          next: () => {
+            const nodeKey = wavefront.first();
+            if (!nodeKey) {
+              return { done: true, value: (undefined as any) as [K, N] };
+            }
+            wavefront = wavefront.skip(1);
+            edges = edges.filter(
+              (_: any, { source }: { source: K }) => source !== nodeKey,
+            );
             this.successors(nodeKey)
               .filterNot((_, sucKey) =>
                 edges.some((_, edgeKey) => edgeKey.target === sucKey),
@@ -136,9 +181,6 @@ class UntypedGraph<K, N, E>
         };
       },
     } as Iterable<[K, N]>);
-  }
-  hasCycles(): boolean {
-    return this.topoSort().count() !== this.nodes.count();
   }
 }
 

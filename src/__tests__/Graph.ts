@@ -90,6 +90,54 @@ describe("Graph structure", () => {
       });
     });
 
+    describe("ancestors()", () => {
+      const anc = NodeSeq(["a", "b", "c", "d", "e"]);
+
+      console.log(graph.ancestors("F"));
+
+      it("returns all ancestors of the passed node", () => {
+        expect(graph.ancestors("F").equals(anc)).toBeTruthy();
+      });
+
+      it("doesn't return any ancestors more than once", () => {
+        expect(
+          graph
+            .connect("C", "E", "ce")
+            .ancestors("F")
+            .count(),
+        ).toBe(5);
+      });
+
+      it("returns an empty Seq for a missing key", () => {
+        expect(graph.ancestors("Z").count()).toBe(0);
+        expect(graph.ancestors(undefKey).count()).toBe(0);
+      });
+    });
+
+    describe("descendants()", () => {
+      const des = NodeSeq(["g", "h"]);
+
+      it("returns all descendants of the passed node", () => {
+        expect(graph.descendants("F").equals(des)).toBeTruthy();
+      });
+
+      it("doesn't return any descendant more than once", () => {
+        expect(
+          graph
+            .setNode("I", "i")
+            .connect("G", "I", "gi")
+            .connect("H", "I", "hi")
+            .descendants("F")
+            .count(),
+        ).toBe(3);
+      });
+
+      it("returns an empty Seq for a missing key", () => {
+        expect(graph.descendants("Z").count()).toBe(0);
+        expect(graph.descendants(undefKey).count()).toBe(0);
+      });
+    });
+
     describe("hasNode()", () => {
       it("returns true for node keys that are present", () => {
         expect(graph.hasNode("A")).toBeTruthy();
@@ -239,7 +287,8 @@ describe("Graph structure", () => {
 
       it("returns nodes sorted topologically", () => {
         expect(
-          graph.topoSort()!
+          graph
+            .topoSort()!
             .filter(([k, _]) => sorted.contains(k))
             .map(([k, _]) => k)
             .equals(sorted),
