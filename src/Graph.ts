@@ -154,8 +154,8 @@ function Graph<N, E = N>(values?: Partial<GraphProps<N, E>>): Graph<N, E> {
 
 namespace Graph {
   export function from<N, E>(
-    nodes: [NodeKey, N][],
-    edges?: [NodeKey, NodeKey, E][],
+    nodes: Iterable<[NodeKey, N]>,
+    edges?: Iterable<[NodeKey, NodeKey, E]>,
   ): Graph<N, E> {
     return new UntypedGraph({
       nodes: Map(nodes),
