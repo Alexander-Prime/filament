@@ -1,11 +1,11 @@
 import { hash, Record, Map, ValueObject, Seq } from "immutable";
 
-type NodeKey = string;
+type NodeKey = number | string | ValueObject;
 
-class EdgeKey implements ValueObject {
-  constructor(public source: NodeKey, public target: NodeKey) {}
+class EdgeKey<K> implements ValueObject {
+  constructor(public source: K, public target: K) {}
 
-  equals(other: EdgeKey): boolean {
+  equals(other: EdgeKey<K>): boolean {
     return this.source === other.source && this.target === other.target;
   }
 
@@ -17,99 +17,97 @@ class EdgeKey implements ValueObject {
   }
 }
 
-interface GraphProps<N, E> {
-  nodes: Map<NodeKey, N>;
-  edges: Map<EdgeKey, E>;
+interface GraphProps<K, N, E> {
+  nodes: Map<K, N>;
+  edges: Map<EdgeKey<K>, E>;
 }
 
-interface GraphMethods<N, E> {
-  predecessors(key: NodeKey): Seq<NodeKey, N>;
-  successors(key: NodeKey): Seq<NodeKey, N>;
-  neighbors(key: NodeKey): Seq<NodeKey, N>;
+interface GraphMethods<K, N, E> {
+  predecessors(key: K): Seq<K, N>;
+  successors(key: K): Seq<K, N>;
+  neighbors(key: K): Seq<K, N>;
 
-  hasNode(key: NodeKey): boolean;
-  getNode<NSV>(key: NodeKey, notSetValue: NSV): N | NSV;
-  getNode(key: NodeKey): N | undefined;
-  setNode(key: NodeKey, node: N): this;
-  deleteNode(key: NodeKey): this;
+  hasNode(key: K): boolean;
+  getNode<NSV>(key: K, notSetValue: NSV): N | NSV;
+  getNode(key: K): N | undefined;
+  setNode(key: K, node: N): this;
+  deleteNode(key: K): this;
 
-  hasEdge(srcKey: NodeKey, tgtKey: NodeKey): boolean;
-  getEdge<NSV>(srcKey: NodeKey, tgtKey: NodeKey, notSetValue: NSV): E | NSV;
-  getEdge(srcKey: NodeKey, tgtKey: NodeKey): E | undefined;
-  connect(srcKey: NodeKey, tgtKey: NodeKey, edge: E): this;
-  disconnect(srcKey: NodeKey, tgtKey: NodeKey): this;
+  hasEdge(srcKey: K, tgtKey: K): boolean;
+  getEdge<NSV>(srcKey: K, tgtKey: K, notSetValue: NSV): E | NSV;
+  getEdge(srcKey: K, tgtKey: K): E | undefined;
+  connect(srcKey: K, tgtKey: K, edge: E): this;
+  disconnect(srcKey: K, tgtKey: K): this;
 
-  findSources(): Seq<NodeKey, N>;
-  findSinks(): Seq<NodeKey, N>;
-  topoSort(): Seq.Indexed<[NodeKey, N]> | undefined;
+  findSources(): Seq<K, N>;
+  findSinks(): Seq<K, N>;
+  topoSort(): Seq.Indexed<[K, N]> | undefined;
   hasCycles(): boolean;
 }
 
-class UntypedGraph<N, E> extends Record<GraphProps<any, any>>({
-  nodes: Map(),
-  edges: Map(),
-}) implements GraphMethods<N, E> {
-  predecessors(key: NodeKey): Seq<NodeKey, N> {
+class UntypedGraph<K, N, E>
+  extends Record<GraphProps<any, any, any>>({
+    nodes: Map(),
+    edges: Map(),
+  })
+  implements GraphMethods<K, N, E> {
+  predecessors(key: K): Seq<K, N> {
     return Seq(this.edges)
       .filter((_, k) => k.target === key)
       .mapEntries(([k, _]) => [k.source, this.nodes.get(k.source)]);
   }
-  successors(key: NodeKey): Seq<NodeKey, N> {
+  successors(key: K): Seq<K, N> {
     return Seq(this.edges)
       .filter((_, k) => k.source === key)
       .mapEntries(([k, _]) => [k.target, this.nodes.get(k.target)]);
   }
-  neighbors(key: NodeKey): Seq<NodeKey, N> {
+  neighbors(key: K): Seq<K, N> {
     const pre = this.predecessors(key);
     const suc = this.successors(key).filterNot((_, k) => pre.has(k));
-    return pre.concat(suc) as Seq<NodeKey, N>;
+    return pre.concat(suc) as Seq<K, N>;
   }
 
-  hasNode(key: NodeKey): boolean {
+  hasNode(key: K): boolean {
     return this.nodes.has(key);
   }
-  getNode<NSV>(key: NodeKey, notSetValue?: NSV): N | NSV | undefined {
+  getNode<NSV>(key: K, notSetValue?: NSV): N | NSV | undefined {
     return this.nodes.get(key, notSetValue);
   }
-  setNode(key: NodeKey, node: N): this {
+  setNode(key: K, node: N): this {
     return this.setIn(["nodes", key], node);
   }
-  deleteNode(key: NodeKey): this {
+  deleteNode(key: K): this {
     return this.deleteIn(["nodes", key]);
   }
 
-  hasEdge(srcKey: NodeKey, tgtKey: NodeKey): boolean {
+  hasEdge(srcKey: K, tgtKey: K): boolean {
     return this.edges.has(new EdgeKey(srcKey, tgtKey));
   }
-  getEdge<NSV>(
-    srcKey: NodeKey,
-    tgtKey: NodeKey,
-    notSetValue?: NSV,
-  ): E | NSV | undefined {
+  getEdge<NSV>(srcKey: K, tgtKey: K, notSetValue?: NSV): E | NSV | undefined {
     return this.edges.get(new EdgeKey(srcKey, tgtKey), notSetValue);
   }
-  connect(srcKey: NodeKey, tgtKey: NodeKey, edge: E): this {
+  connect(srcKey: K, tgtKey: K, edge: E): this {
     if (!this.hasNode(srcKey) || !this.hasNode(tgtKey)) {
       return this;
     }
     return this.setIn(["edges", new EdgeKey(srcKey, tgtKey)], edge);
   }
-  disconnect(srcKey: NodeKey, tgtKey: NodeKey): this {
+  disconnect(srcKey: K, tgtKey: K): this {
     if (!this.hasNode(srcKey) || !this.hasNode(tgtKey)) {
       return this;
     }
     return this.deleteIn(["edges", new EdgeKey(srcKey, tgtKey)]);
   }
 
-  findSources(): Seq<NodeKey, N> {
+  findSources(): Seq<K, N> {
     const targets = this.edges.keySeq().map(({ target }) => target);
     return this.nodes.toSeq().filterNot((_, k) => targets.contains(k));
   }
-  findSinks(): Seq<NodeKey, N> {
+  findSinks(): Seq<K, N> {
     const sources = this.edges.keySeq().map(({ source }) => source);
     return this.nodes.toSeq().filterNot((_, k) => sources.contains(k));
   }
-  topoSort(): Seq.Indexed<[NodeKey, N]> {
+  topoSort(): Seq.Indexed<[K, N]> {
     let wavefront = this.findSources()
       .keySeq()
       .toSet();
@@ -120,7 +118,7 @@ class UntypedGraph<N, E> extends Record<GraphProps<any, any>>({
           next: () => {
             const nodeKey = wavefront.first();
             if (!nodeKey) {
-              return { done: true, value: (undefined as any) as [NodeKey, N] };
+              return { done: true, value: (undefined as any) as [K, N] };
             }
             wavefront = wavefront.skip(1);
             edges = edges.filter((_, { source }) => source !== nodeKey);
@@ -137,26 +135,28 @@ class UntypedGraph<N, E> extends Record<GraphProps<any, any>>({
           },
         };
       },
-    } as Iterable<[NodeKey, N]>);
+    } as Iterable<[K, N]>);
   }
   hasCycles(): boolean {
     return this.topoSort().count() !== this.nodes.count();
   }
 }
 
-type Graph<N, E = N> = UntypedGraph<N, E> &
-  Readonly<GraphProps<N, E>> &
-  GraphMethods<N, E>;
+type Graph<K extends NodeKey, N = void, E = void> = UntypedGraph<K, N, E> &
+  Readonly<GraphProps<K, N, E>> &
+  GraphMethods<K, N, E>;
 
-function Graph<N, E = N>(values?: Partial<GraphProps<N, E>>): Graph<N, E> {
+function Graph<K extends NodeKey, N, E>(
+  values?: Partial<GraphProps<K, N, E>>,
+): Graph<K, N, E> {
   return new UntypedGraph(values);
 }
 
 namespace Graph {
-  export function from<N, E>(
-    nodes: Iterable<[NodeKey, N]>,
-    edges?: Iterable<[NodeKey, NodeKey, E]>,
-  ): Graph<N, E> {
+  export function from<K extends NodeKey, N, E>(
+    nodes: Iterable<[K, N]>,
+    edges?: Iterable<[K, K, E]>,
+  ): Graph<K, N, E> {
     return new UntypedGraph({
       nodes: Map(nodes),
       edges: edges
