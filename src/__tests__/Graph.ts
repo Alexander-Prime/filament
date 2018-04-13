@@ -93,8 +93,6 @@ describe("Graph structure", () => {
     describe("ancestors()", () => {
       const anc = NodeSeq(["a", "b", "c", "d", "e"]);
 
-      console.log(graph.ancestors("F"));
-
       it("returns all ancestors of the passed node", () => {
         expect(graph.ancestors("F").equals(anc)).toBeTruthy();
       });
@@ -262,6 +260,34 @@ describe("Graph structure", () => {
           expect(graph.disconnect("A", "Z")).toBe(graph);
           expect(graph.disconnect(undefKey, undefKey)).toBe(graph);
         });
+      });
+    });
+
+    describe("connectAll()", () => {
+      it("returns a new Graph", () => {
+        expect(
+          graph.connectAll(["A"], ["E"], (a, b) => (a + b).toLowerCase()),
+        ).not.toBe(graph);
+      });
+
+      it("adds edges from each source to each target", () => {
+        expect(
+          graph.connectAll(["A", "B"], ["E", "F"], (a, b) =>
+            (a + b).toLowerCase(),
+          ),
+        ).toEqual(
+          graph
+            .connect("A", "E", "ae")
+            .connect("A", "F", "af")
+            .connect("B", "E", "be")
+            .connect("B", "F", "bf"),
+        );
+      });
+
+      it("ignores invalid keys", () => {
+        expect(
+          graph.connectAll(["A", "Z"], ["F"], (a, b) => (a + b).toLowerCase()),
+        ).toEqual(graph.connect("A", "F", "af"));
       });
     });
 

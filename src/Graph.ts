@@ -41,6 +41,11 @@ interface GraphMethods<K, N, E> {
   getEdge(srcKey: K, tgtKey: K): E | undefined;
   connect(srcKey: K, tgtKey: K, edge: E): this;
   disconnect(srcKey: K, tgtKey: K): this;
+  connectAll(
+    srcKeys: Iterable<K>,
+    tgtKeys: Iterable<K>,
+    value: (src: K, tgt: K) => E,
+  ): this;
 
   findSources(): Seq<K, N>;
   findSinks(): Seq<K, N>;
@@ -107,6 +112,27 @@ class UntypedGraph<K, N, E>
       return this;
     }
     return this.deleteIn(["edges", new EdgeKey(srcKey, tgtKey)]);
+  }
+  connectAll(
+    srcKeys: Iterable<K>,
+    tgtKeys: Iterable<K>,
+    value: (src: K, tgt: K) => E,
+  ) {
+    const srcs = Seq(srcKeys).filter(src => this.nodes.has(src));
+    const tgts = Seq(tgtKeys).filter(tgt => this.nodes.has(tgt));
+    return this.update("edges", (edges: Map<EdgeKey<K>, E>) => {
+      return srcs
+        .flatMap(source =>
+          tgts.map(
+            target =>
+              [new EdgeKey(source, target), value(source, target)] as [
+                EdgeKey<K>,
+                E
+              ],
+          ),
+        )
+        .reduce((prior, edge) => prior.set(edge[0], edge[1]), edges);
+    });
   }
 
   findSources(): Seq<K, N> {
