@@ -21,7 +21,8 @@
     "baseUrl": "./src",
     "rootDirs": [".", "./src"],
     "plugins": [{ "name": "tslint-language-service" }],
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "skipLibCheck": true
   },
   "files": ["src/Graph.ts"],
   "exclude": ["node_modules", "**/__tests__"]
